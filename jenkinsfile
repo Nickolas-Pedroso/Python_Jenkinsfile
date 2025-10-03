@@ -4,8 +4,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/SEU-USUARIO/SEU-REPO.git',
+                git branch: 'master',
+                    url: 'https://github.com/Nickolas-Pedroso/Python_Jenkinsfile.git',
                     credentialsId: 'github-token'
             }
         }
