@@ -9,15 +9,13 @@ services:
       - "50000:50000"
     volumes:
       # Mapeamento do socket Docker (Docker-in-Docker)
+      # Este é o método padrão e mais robusto, desde que o container Jenkins tenha o cliente Docker.
       - /var/run/docker.sock:/var/run/docker.sock 
       # Mapeamento do volume de dados do Jenkins
       - jenkins_home:/var/jenkins_home
-    environment:
-      # Exporta o DOCKER_HOST para o container Jenkins (necessário no Windows/Mac)
-      - DOCKER_HOST=tcp://docker:2375
-    # Adicione este serviço de rede especial para acessar o host Docker via TCP
-    extra_hosts: 
-      - "docker:host-gateway" # Permite que 'docker' resolva para o IP do seu Host/Docker Daemon
+    # Variável DOCKER_HOST removida. 
+    # O Jenkins agora usará o socket mapeado /var/run/docker.sock
+    # As configurações 'extra_hosts' e 'environment' para DOCKER_HOST foram removidas.
     restart: unless-stopped
 
 volumes:
