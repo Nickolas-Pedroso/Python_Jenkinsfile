@@ -12,7 +12,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo "⬇️ Checking out code from GitHub..."
-                // Usa a credencial configurada 'github-token'
+                // Certifique-se de que 'github-token' é o ID da credencial que funciona.
                 git branch: 'master',
                     url: 'https://github.com/Nickolas-Pedroso/Python_Jenkinsfile.git',
                     credentialsId: 'github-token'
@@ -21,21 +21,21 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                echo "📦 Building Docker image: ${IMAGE_NAME}"
-                // Substituído 'docker-compose build' por 'docker build'
-                // O ponto final ( . ) indica que o Dockerfile está na raiz do projeto.
-                sh "docker build -t ${IMAGE_NAME}:latest ." 
+                echo "📦 Building Docker image: ${IMAGE_NAME} usando app/Dockerfile"
+                // *****************************************************************
+                // CORREÇÃO AQUI: Especifica o caminho do Dockerfile usando -f
+                // O contexto (.) ainda é a raiz do workspace, o que é necessário para
+                // o Docker acessar a pasta 'app' e seus conteúdos.
+                sh "docker build -t ${IMAGE_NAME}:latest -f app/Dockerfile ." 
+                // *****************************************************************
             }
         }
 
         stage('Run Tests') {
             steps {
                 echo "🧪 Running tests inside container..."
-                // Roda a imagem em modo temporário para executar os testes
-                // O nome do seu arquivo de teste deve ser 'test_app.py'
-                // O '|| true' garante que mesmo que os testes falhem (código 1), 
-                // o estágio Jenkins não falhe imediatamente (pode ser ajustado se preferir falha imediata)
-                sh "docker run --rm ${IMAGE_NAME}:latest pytest test_app.py || true"
+                // Note: O comando de teste assume que 'pytest' está no PATH da sua imagem 'projeto_app'
+                sh "docker run --rm ${IMAGE_NAME}:latest pytest app/teste.py || true"
             }
         }
 
@@ -47,7 +47,6 @@ pipeline {
                 sh "docker rm -f ${CONTAINER_NAME} || true"
                 
                 // 2. Cria e sobe o novo container em background (-d)
-                // Substituído 'docker-compose up' por 'docker run'
                 sh """
                 docker run -d \
                   --name ${CONTAINER_NAME} \
