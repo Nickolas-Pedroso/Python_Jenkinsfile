@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   jenkins:
-    image: jenkins/jenkins:lts
+    image: jenkins/jenkins:2.426.3-jdk17-temurin # Alterado para uma imagem LTS específica e robusta
     user: root # Usar root para evitar problemas de permissão de GID no Windows
     privileged: true # Permite que o Jenkins manipule o Docker do host
     ports:
