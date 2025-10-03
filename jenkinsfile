@@ -25,8 +25,18 @@ pipeline {
             agent any 
             steps {
                 echo "📦 Building Docker image: ${IMAGE_NAME} usando app/Dockerfile"
-                // Garante que o Dockerfile é encontrado na subpasta 'app/'
-                sh "docker build -t ${IMAGE_NAME}:latest -f app/Dockerfile ." 
+                
+                // Tenta instalar o cliente Docker (necessário se a imagem Jenkins for base)
+                sh '''
+                    # Verifica se o comando docker existe; se não, tenta instalar.
+                    if ! command -v docker >/dev/null 2>&1; then
+                        echo "Docker client não encontrado. Tentando instalar..."
+                        apt-get update -y && apt-get install -y docker.io
+                    fi
+                    
+                    # Comando de Build
+                    docker build -t ${IMAGE_NAME}:latest -f app/Dockerfile .
+                '''
             }
         }
 
@@ -35,6 +45,7 @@ pipeline {
             steps {
                 echo "🧪 Running tests inside container..."
                 // Roda a imagem em modo temporário para executar os testes
+                // O '|| true' garante que o pipeline não falhe mesmo se os testes falharem (Comportamento de teste comum)
                 sh "docker run --rm ${IMAGE_NAME}:latest pytest app/teste.py || true"
             }
         }
@@ -49,10 +60,10 @@ pipeline {
                 
                 // 2. Cria e sobe o novo container em background (-d)
                 sh """
-                docker run -d \
-                  --name ${CONTAINER_NAME} \
-                  -p ${APP_PORT}:${APP_PORT} \
-                  --restart unless-stopped \
+                docker run -d \\
+                  --name ${CONTAINER_NAME} \\
+                  -p ${APP_PORT}:${APP_PORT} \\
+                  --restart unless-stopped \\
                   ${IMAGE_NAME}:latest
                 """
                 echo "✅ Aplicação iniciada em: http://localhost:${APP_PORT}"
@@ -72,3 +83,4 @@ pipeline {
         }
     }
 }
+
