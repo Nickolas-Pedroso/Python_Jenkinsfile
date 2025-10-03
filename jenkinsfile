@@ -1,9 +1,18 @@
 pipeline {
     agent any
 
+    environment {
+        // Variáveis de ambiente para padronização
+        IMAGE_NAME = "projeto_app" // Nome da imagem Docker que será construída
+        CONTAINER_NAME = "projeto-app-runner" // Nome do container de deploy
+        APP_PORT = "8080" // Porta da sua aplicação
+    }
+
     stages {
         stage('Checkout') {
             steps {
+                echo "⬇️ Checking out code from GitHub..."
+                // Usa a credencial configurada 'github-token'
                 git branch: 'master',
                     url: 'https://github.com/Nickolas-Pedroso/Python_Jenkinsfile.git',
                     credentialsId: 'github-token'
@@ -12,26 +21,41 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh 'docker-compose build app'
-                }
+                echo "📦 Building Docker image: ${IMAGE_NAME}"
+                // Substituído 'docker-compose build' por 'docker build'
+                // O ponto final ( . ) indica que o Dockerfile está na raiz do projeto.
+                sh "docker build -t ${IMAGE_NAME}:latest ." 
             }
         }
 
         stage('Run Tests') {
             steps {
-                script {
-                    // roda o container só para executar testes
-                    sh 'docker run --rm projeto_app pytest test_app.py || true'
-                }
+                echo "🧪 Running tests inside container..."
+                // Roda a imagem em modo temporário para executar os testes
+                // O nome do seu arquivo de teste deve ser 'test_app.py'
+                // O '|| true' garante que mesmo que os testes falhem (código 1), 
+                // o estágio Jenkins não falhe imediatamente (pode ser ajustado se preferir falha imediata)
+                sh "docker run --rm ${IMAGE_NAME}:latest pytest test_app.py || true"
             }
         }
 
         stage('Deploy') {
             steps {
-                script {
-                    sh 'docker-compose up -d app'
-                }
+                echo "🚀 Starting new container deploy..."
+                
+                // 1. Para e remove containers antigos (se existirem)
+                sh "docker rm -f ${CONTAINER_NAME} || true"
+                
+                // 2. Cria e sobe o novo container em background (-d)
+                // Substituído 'docker-compose up' por 'docker run'
+                sh """
+                docker run -d \
+                  --name ${CONTAINER_NAME} \
+                  -p ${APP_PORT}:${APP_PORT} \
+                  --restart unless-stopped \
+                  ${IMAGE_NAME}:latest
+                """
+                echo "✅ Aplicação iniciada em: http://localhost:${APP_PORT}"
             }
         }
     }
@@ -41,7 +65,7 @@ pipeline {
             echo 'Pipeline finalizado!'
         }
         failure {
-            echo 'Falhou 😢'
+            echo 'Falhou 😢. Verifique os logs detalhados acima.'
         }
         success {
             echo 'Deploy concluído com sucesso 🚀'
