@@ -9,6 +9,22 @@ pipeline {
     }
 
     stages {
+        stage('Setup') {
+            agent {
+                // Usar uma imagem Linux padrão que tenha 'apt'
+                docker { image 'debian:latest' }
+            }
+            steps {
+                echo "⚙️ Installing Docker client inside Jenkins agent..."
+                // Este script instala o cliente Docker dentro do container temporário
+                // para que o comando 'docker build' funcione
+                sh '''
+                    apt-get update && apt-get install -y docker.io
+                    # O Docker já deve estar mapeado via socket, apenas garantimos a instalação do client
+                '''
+            }
+        }
+        
         stage('Checkout') {
             steps {
                 echo "⬇️ Checking out code from GitHub..."
@@ -20,26 +36,27 @@ pipeline {
         }
 
         stage('Build Docker Image') {
+            // Revertemos para 'agent any' para usar o workspace principal do Jenkins, onde o git clonou.
+            agent any 
             steps {
                 echo "📦 Building Docker image: ${IMAGE_NAME} usando app/Dockerfile"
-                // *****************************************************************
-                // CORREÇÃO AQUI: Especifica o caminho do Dockerfile usando -f
-                // O contexto (.) ainda é a raiz do workspace, o que é necessário para
-                // o Docker acessar a pasta 'app' e seus conteúdos.
+                // Correção do caminho do Dockerfile (já feita por você)
                 sh "docker build -t ${IMAGE_NAME}:latest -f app/Dockerfile ." 
-                // *****************************************************************
             }
         }
 
         stage('Run Tests') {
+            agent any 
             steps {
                 echo "🧪 Running tests inside container..."
-                // Note: O comando de teste assume que 'pytest' está no PATH da sua imagem 'projeto_app'
+                // Roda a imagem em modo temporário para executar os testes
+                // Comando ajustado para rodar o arquivo de teste dentro da pasta 'app/'
                 sh "docker run --rm ${IMAGE_NAME}:latest pytest app/teste.py || true"
             }
         }
 
         stage('Deploy') {
+            agent any 
             steps {
                 echo "🚀 Starting new container deploy..."
                 
