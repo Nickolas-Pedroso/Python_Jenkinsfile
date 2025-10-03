@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/SEU-USUARIO/SEU-REPO.git',
+                    credentialsId: 'github-token'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh 'docker-compose build app'
+                }
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                script {
+                    // roda o container só para executar testes
+                    sh 'docker run --rm projeto_app pytest test_app.py || true'
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    sh 'docker-compose up -d app'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finalizado!'
+        }
+        failure {
+            echo 'Falhou 😢'
+        }
+        success {
+            echo 'Deploy concluído com sucesso 🚀'
+        }
+    }
+}
